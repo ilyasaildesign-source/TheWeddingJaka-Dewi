@@ -420,7 +420,8 @@
     <input type="file" id="audio-file-uploader" accept="audio/mp3, audio/*">
     <input type="file" id="card-bg-uploader" accept="image/*">
 
-    <div class="text-toolbar" id="text-toolbar">
+    <!-- Di-hide secara default via inline CSS agar tidak berkedip saat loading -->
+    <div class="text-toolbar" id="text-toolbar" style="display: none;">
         <span class="toolbar-label">FONT:</span>
         <select id="font-family-select">
             <option value="'Montserrat', sans-serif">Montserrat</option>
@@ -472,7 +473,7 @@
     <section id="quran-section">
         <div class="section-content-wrapper">
             <div class="quran-box">
-                <div class="arabic editable" contenteditable="false">وَمِنْ اٰيٰتِهٖٓ اَنْ خَلَقَ لَكُمْ mِّنْ اَنْفُسِكُمْ اَزْوَاجًا لِّتَسْكُنُوْٓا اِلَيْهَا وَجَعَلَ بَيْنَكُمْ mَّوَدَّةً mَّرَحْمَةً ۗاِنَّ فِيْ ذٰلِكَ لَاٰيٰتٍ لِّقَوْمٍ يَّتَفَكَّرُوْنَ</div>
+                <div class="arabic editable" contenteditable="false">وَمِنْ اٰيٰtِهٖٓ اَنْ خَلَقَ لَكُمْ مِّنْ اَنْfُسِكُمْ اَزْوَاجًا لِّتَسْكُنُوْٓا اِلَيْهَا وَجَعَلَ بَيْنَكُمْ مَّوَدَّةً وَرَحْمَةً ۗاِنَّ فِيْ ذٰلِكَ لَاٰيٰتٍ لِّقَوْمٍ يَّتَفَكَّرُوْنَ</div>
                 <div class="artinya editable" contenteditable="false">"Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya..." (QS. Ar-Rum: 21)</div>
             </div>
         </div>
@@ -634,8 +635,8 @@
     <!-- TOAST NOTIFICATION -->
     <div class="toast-notification" id="toast-notif">Aksi Berhasil!</div>
 
-    <!-- ADMIN PANEL BOTTOM -->
-    <div class="admin-panel">
+    <!-- ADMIN PANEL BOTTOM (Di-hide secara default via inline CSS) -->
+    <div class="admin-panel" id="admin-panel" style="display: none;">
         <span style="font-size: 0.85rem; font-weight: bold;">MODE: <span class="status-badge status-locked" id="status-mode">PREVIEW (LOCKED)</span></span>
         <button class="admin-btn btn-edit" id="btn-toggle-edit"><i class="fa-solid fa-pen-to-square"></i> Edit Undangan</button>
         <div class="music-input-box">
@@ -659,12 +660,31 @@
         const btnOpenInvitation = document.getElementById('btn-open-invitation');
         const weddingCover = document.getElementById('wedding-cover');
 
-        // Mengatur Parsing Nama Tamu Otomatis dari URL Parameter (?to=Nama+Tamu)
+        // Mengatur Parsing Nama Tamu Otomatis & Proteksi Sistem Whitelist Admin
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const guestName = params.get('to');
+            const editAccess = params.get('edit'); // Kunci rahasia: ?edit=true
+
+            // 1. Parsing Nama Tamu
             if (guestName) {
                 document.getElementById('guest-name').innerText = guestName;
+            }
+
+            // 2. PROTEKSI SISTEM WHITELIST
+            const adminPanel = document.getElementById('admin-panel');
+            const textToolbar = document.getElementById('text-toolbar');
+
+            if (editAccess === 'true') {
+                // Tampilkan fitur editor hanya jika link memiliki ?edit=true
+                if (adminPanel) adminPanel.style.display = 'flex';
+                if (textToolbar) textToolbar.style.display = 'flex';
+            } else {
+                // Kunci total mode editor untuk tamu umum
+                isEditMode = false;
+                disableEditMode();
+                if (adminPanel) adminPanel.style.display = 'none';
+                if (textToolbar) textToolbar.style.display = 'none';
             }
         });
 
@@ -730,7 +750,12 @@
             statusMode.className = "status-badge status-locked";
             btnToggleEdit.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Edit Undangan`;
             btnSaveAll.style.display = "none";
-            textToolbar.classList.remove('active');
+            
+            // Pastikan toolbar teks tersembunyi dengan benar saat preview (jika dalam akses admin)
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('edit') === 'true' && textToolbar) {
+                textToolbar.classList.remove('active');
+            }
             
             editables.forEach(el => {
                 el.setAttribute('contenteditable', 'false');
@@ -958,7 +983,7 @@
         const btnCopyUrl = document.getElementById('btn-copy-url');
 
         btnTriggerShare.addEventListener('click', () => {
-            // Set link input value dinamis sesuai alamat url browser saat ini
+            // Set link input value dinamis bersih tanpa menyertakan kunci ?edit=true milik admin
             const currentBaseUrl = window.location.href.split('?')[0];
             document.getElementById('share-url-field').value = currentBaseUrl + "?to=Nama+Tamu+Undangan";
             shareOverlay.classList.add('active');
